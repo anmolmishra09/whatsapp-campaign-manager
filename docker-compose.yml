@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: wa_campaign_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: wa_admin
+      POSTGRES_PASSWORD: wa_secure_password_2026
+      POSTGRES_DB: wa_campaigns_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/migrations/001_initial_schema.sql:/docker-entrypoint-initdb.d/001_initial_schema.sql
+    networks:
+      - wa_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: wa_campaign_redis
+    restart: always
+    command: redis-server --appendonly yes --requirepass redis_secure_pass_2026
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    networks:
+      - wa_network
+
+volumes:
+  pgdata:
+  redisdata:
+
+networks:
+  wa_network:
+    driver: bridge

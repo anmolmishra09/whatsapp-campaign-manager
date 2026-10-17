@@ -1,0 +1,771 @@
+
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta
+    name="description"
+    content="WhatsApp Campaign Enterprise Manager for contact imports, campaign preparation, consent verification and delivery tracking."
+  >
+
+  <title>WhatsApp Campaign Enterprise Manager</title>
+
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <link rel="stylesheet" href="css/animations.css">
+
+  <!-- Excel and CSV parsing -->
+  <script
+    src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"
+    defer
+  ></script>
+</head>
+
+<body>
+  <div class="app-container">
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">WA</div>
+
+        <div>
+          <h2 style="font-size: 15px; font-weight: 700; color: #fff;">
+            Campaign Pro
+          </h2>
+          <span style="font-size: 11px; color: #64748b;">
+            Enterprise Suite
+          </span>
+        </div>
+      </div>
+
+      <ul class="sidebar-nav">
+        <li class="nav-item active">
+          <button type="button" data-target="view-dashboard">
+            Dashboard
+          </button>
+        </li>
+
+        <li class="nav-item">
+          <button type="button" data-target="view-create">
+            Create Campaign
+          </button>
+        </li>
+
+        <li class="nav-item">
+          <button type="button" data-target="view-contacts">
+            Contacts &amp; Suppressions
+          </button>
+        </li>
+
+        <li class="nav-item">
+          <button type="button" data-target="view-history">
+            Campaign History
+          </button>
+        </li>
+
+        <li class="nav-item">
+          <button type="button" data-target="view-settings">
+            Settings &amp; Verification
+          </button>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <button
+          type="button"
+          id="themeToggleBtn"
+          class="btn btn-secondary"
+          style="width: 100%; font-size: 12px; color: #94a3b8;"
+        >
+          Toggle Theme
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="main-content">
+
+      <!-- Top Header -->
+      <header class="top-header">
+        <div>
+          <h1 id="pageTitle" style="font-size: 18px; font-weight: 700;">
+            Operational Dashboard
+          </h1>
+        </div>
+
+        <div class="header-status-badge" id="senderStatusBadge">
+          <span class="status-dot"></span>
+          <span id="senderStatusText">
+            API connection not verified
+          </span>
+        </div>
+      </header>
+
+      <!-- ==========================================
+           DASHBOARD
+      =========================================== -->
+      <section id="view-dashboard" class="page-view active">
+
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <span class="metric-label">Total Contacts Imported</span>
+            <span class="metric-value" id="metric-imported">0</span>
+          </div>
+
+          <div class="metric-card alert-success">
+            <span class="metric-label">Valid Active Contacts</span>
+            <span class="metric-value" id="metric-valid">0</span>
+          </div>
+
+          <div class="metric-card alert-queue">
+            <span class="metric-label">Messages Queued</span>
+            <span class="metric-value" id="metric-queued">0</span>
+          </div>
+
+          <div class="metric-card">
+            <span class="metric-label">Delivered Count</span>
+            <span class="metric-value" id="metric-delivered">0</span>
+          </div>
+
+          <div class="metric-card alert-failed">
+            <span class="metric-label">Delivery Failures</span>
+            <span class="metric-value" id="metric-failed">0</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Live System Notification</h3>
+          </div>
+
+          <div
+            id="systemHealthMsg"
+            style="font-size: 14px; color: var(--text-muted); line-height: 1.6;"
+            role="status"
+            aria-live="polite"
+          >
+            Awaiting file import or campaign launch. Verify your Meta
+            WhatsApp Cloud API credentials in Settings before sending
+            messages. Only contact recipients who have consented to
+            receive your communications.
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           CREATE CAMPAIGN
+      =========================================== -->
+      <section id="view-create" class="page-view">
+
+        <div class="campaign-builder-grid">
+
+          <!-- Message Composer -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">
+                1. Message &amp; Media Configuration
+              </h3>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="dispatchModeSelect">
+                Dispatch Format
+              </label>
+
+              <select id="dispatchModeSelect" class="form-select">
+                <option value="text_only">Pure Text Message</option>
+                <option value="pdf_only">PDF Document Broadcast</option>
+                <option value="text_with_pdf">
+                  Text Message with Attached PDF Document
+                </option>
+              </select>
+            </div>
+
+            <!-- PDF Upload -->
+            <div
+              class="form-group"
+              id="pdfUploadWrapper"
+              style="display: none;"
+            >
+              <label class="form-label" for="pdfFileInput">
+                Attached PDF Document (Maximum 100MB)
+              </label>
+
+              <div
+                class="dropzone"
+                id="pdfDropZone"
+                role="button"
+                tabindex="0"
+                aria-label="Select or drop a PDF document"
+              >
+                <p style="font-size: 13px; color: var(--text-muted);">
+                  Click or drag and drop an authorized PDF here
+                </p>
+
+                <span
+                  id="pdfFileMeta"
+                  style="font-size: 12px; font-weight: 600; color: var(--accent-blue); display: block; margin-top: 8px;"
+                ></span>
+
+                <input
+                  type="file"
+                  id="pdfFileInput"
+                  accept=".pdf,application/pdf"
+                  style="display: none;"
+                >
+              </div>
+            </div>
+
+            <!-- Message Editor -->
+            <div class="form-group" id="textMessageWrapper">
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                <label class="form-label" for="messageEditor">
+                  Message Template / Text Body
+                </label>
+
+                <span
+                  id="charCounter"
+                  style="font-size: 12px; color: var(--text-muted);"
+                >
+                  0 chars | 0 words
+                </span>
+              </div>
+
+              <textarea
+                id="messageEditor"
+                class="form-textarea"
+                placeholder="Hello {{name}}, here is your requested update from {{company}}."
+              ></textarea>
+
+              <div style="display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap;">
+                <button
+                  type="button"
+                  class="btn btn-secondary insert-placeholder"
+                  data-val="{{name}}"
+                  style="padding: 4px 8px; font-size: 11px;"
+                >
+                  + Name
+                </button>
+
+                <button
+                  type="button"
+                  class="btn btn-secondary insert-placeholder"
+                  data-val="{{phone}}"
+                  style="padding: 4px 8px; font-size: 11px;"
+                >
+                  + Phone
+                </button>
+
+                <button
+                  type="button"
+                  class="btn btn-secondary insert-placeholder"
+                  data-val="{{company}}"
+                  style="padding: 4px 8px; font-size: 11px;"
+                >
+                  + Company
+                </button>
+              </div>
+            </div>
+
+            <!-- WhatsApp Preview -->
+            <div class="form-group">
+              <label class="form-label">
+                WhatsApp Message Preview
+              </label>
+
+              <div class="preview-screen">
+                <div class="preview-bubble">
+                  <div
+                    id="bubbleDocPreview"
+                    style="font-weight: 700; color: var(--accent-blue); display: none; margin-bottom: 6px;"
+                  >
+                    PDF Document
+                  </div>
+
+                  <div id="bubbleTextPreview">
+                    Awaiting message input...
+                  </div>
+
+                  <div class="preview-time" id="bubbleTime">
+                    12:00 PM
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Contact Importer -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">
+                2. Recipient Importer (.xlsx, .xls, .csv)
+              </h3>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="excelFileInput">
+                Target Spreadsheet
+              </label>
+
+              <div
+                class="dropzone"
+                id="excelDropZone"
+                role="button"
+                tabindex="0"
+                aria-label="Select or drop a contact spreadsheet"
+              >
+                <p style="font-size: 13px; color: var(--text-muted);">
+                  Click or drag and drop a contact spreadsheet
+                </p>
+
+                <span
+                  id="excelFileMeta"
+                  style="font-size: 12px; font-weight: 600; color: var(--accent-cyan); display: block; margin-top: 8px;"
+                ></span>
+
+                <input
+                  type="file"
+                  id="excelFileInput"
+                  accept=".xlsx,.xls,.csv"
+                  style="display: none;"
+                >
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="countryPrefixSelect">
+                Default Country Prefix
+              </label>
+
+              <select id="countryPrefixSelect" class="form-select">
+                <option value="91" selected>India (+91)</option>
+                <option value="1">USA / Canada (+1)</option>
+                <option value="44">United Kingdom (+44)</option>
+                <option value="971">United Arab Emirates (+971)</option>
+              </select>
+            </div>
+
+            <!-- Consent Confirmation -->
+            <div
+              class="form-group"
+              style="padding: 12px; background: rgba(0,0,0,0.02); border-radius: var(--radius-sm); border: 1px solid var(--border-color);"
+            >
+              <label style="display: flex; gap: 10px; align-items: flex-start; cursor: pointer;">
+                <input
+                  type="checkbox"
+                  id="consentConfirmation"
+                  style="margin-top: 3px;"
+                >
+
+                <span style="font-size: 12px; color: var(--text-muted);">
+                  I confirm that recipients have given the required prior
+                  consent to receive these WhatsApp communications and that
+                  applicable opt-out requests will be respected.
+                </span>
+              </label>
+            </div>
+
+            <!-- Validation Summary -->
+            <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 14px;">
+              <div style="padding: 10px; background: var(--bg-primary); border-radius: 6px; text-align: center;">
+                <span style="font-size: 11px; color: var(--text-muted); display: block;">
+                  Parsed Valid
+                </span>
+                <strong
+                  id="countValid"
+                  style="color: var(--accent-green); font-size: 16px;"
+                >0</strong>
+              </div>
+
+              <div style="padding: 10px; background: var(--bg-primary); border-radius: 6px; text-align: center;">
+                <span style="font-size: 11px; color: var(--text-muted); display: block;">
+                  Duplicates
+                </span>
+                <strong
+                  id="countDuplicates"
+                  style="color: var(--accent-orange); font-size: 16px;"
+                >0</strong>
+              </div>
+
+              <div style="padding: 10px; background: var(--bg-primary); border-radius: 6px; text-align: center;">
+                <span style="font-size: 11px; color: var(--text-muted); display: block;">
+                  Invalid / Suppressed
+                </span>
+                <strong
+                  id="countInvalid"
+                  style="color: var(--accent-red); font-size: 16px;"
+                >0</strong>
+              </div>
+            </div>
+
+            <!-- Contact Verification Table -->
+            <div
+              class="table-responsive"
+              style="max-height: 240px; overflow-y: auto; margin-top: 16px;"
+            >
+              <table class="data-table" id="contactVerificationTable">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Name</th>
+                    <th>Normalized Phone</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+
+                <tbody id="contactTableBody">
+                  <tr>
+                    <td colspan="4" style="text-align: center; color: var(--text-muted);">
+                      No contacts imported yet.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; gap: 12px;">
+              <button
+                type="button"
+                id="launchCampaignBtn"
+                class="btn btn-primary"
+                style="flex: 1;"
+                disabled
+              >
+                Review &amp; Launch Campaign
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           CAMPAIGN REVIEW MODAL
+      =========================================== -->
+      <div
+        id="campaignReviewModal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="campaignReviewTitle"
+        style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 20px;"
+      >
+        <div class="card" style="width: 540px; max-width: 90vw;">
+          <h3
+            class="card-title"
+            id="campaignReviewTitle"
+            style="margin-bottom: 16px;"
+          >
+            Campaign Dispatch Confirmation
+          </h3>
+
+          <div style="font-size: 13.5px; line-height: 1.8; color: var(--text-main); margin-bottom: 20px;">
+            <p>
+              <strong>Configured Sender:</strong>
+              <span id="reviewSenderId">8787222966</span>
+            </p>
+
+            <p>
+              <strong>Total Eligible Recipients:</strong>
+              <span id="reviewRecipientCount">0</span>
+            </p>
+
+            <p>
+              <strong>Invalid / Suppressed Excluded:</strong>
+              <span id="reviewExcludedCount">0</span>
+            </p>
+
+            <p>
+              <strong>Dispatch:</strong>
+              Backend queue processing
+            </p>
+          </div>
+
+          <div style="display: flex; gap: 12px; justify-content: flex-end;">
+            <button
+              type="button"
+              id="cancelReviewBtn"
+              class="btn btn-secondary"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="button"
+              id="confirmDispatchBtn"
+              class="btn btn-primary"
+            >
+              Confirm &amp; Dispatch
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           CONTACTS & SUPPRESSIONS
+      =========================================== -->
+      <section id="view-contacts" class="page-view">
+        <div class="card" style="max-width: 800px;">
+          <h3 class="card-title" style="margin-bottom: 12px;">
+            Active Suppression List (Opt-Outs)
+          </h3>
+
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">
+            Recipients who have opted out or been manually suppressed must
+            be excluded from future campaigns.
+          </p>
+
+          <div style="display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
+            <input
+              type="text"
+              id="suppressInput"
+              class="form-input"
+              placeholder="E.164 phone number, e.g. +918787222966"
+              autocomplete="off"
+              style="flex: 1; min-width: 200px;"
+            >
+
+            <button
+              type="button"
+              id="addSuppressionBtn"
+              class="btn btn-secondary"
+            >
+              Suppress Number
+            </button>
+          </div>
+
+          <div
+            class="table-responsive"
+            style="max-height: 300px; overflow-y: auto;"
+          >
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Phone Number</th>
+                  <th>Reason</th>
+                  <th>Suppressed Date</th>
+                </tr>
+              </thead>
+
+              <tbody id="suppressionTableBody">
+                <tr>
+                  <td colspan="3" style="text-align: center; color: var(--text-muted);">
+                    Suppression list is currently empty.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           CAMPAIGN HISTORY
+      =========================================== -->
+      <section id="view-history" class="page-view">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">
+              Campaign Records &amp; Delivery Tracking
+            </h3>
+
+            <button
+              type="button"
+              id="refreshHistoryBtn"
+              class="btn btn-secondary"
+              style="font-size: 12px;"
+            >
+              Refresh
+            </button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Campaign ID</th>
+                  <th>Created</th>
+                  <th>Format</th>
+                  <th>Eligible</th>
+                  <th>Submitted</th>
+                  <th>Delivered</th>
+                  <th>Failed</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+
+              <tbody id="historyTableBody">
+                <tr>
+                  <td colspan="8" style="text-align: center; color: var(--text-muted);">
+                    No recorded campaigns.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           SETTINGS & META API VERIFICATION
+      =========================================== -->
+      <section id="view-settings" class="page-view">
+        <div style="display: flex; flex-direction: column; gap: 24px; max-width: 800px;">
+
+          <!-- Meta Credentials -->
+          <div class="card">
+            <h3 class="card-title" style="margin-bottom: 8px;">
+              WhatsApp Business Cloud API Verification
+            </h3>
+
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">
+              Configure the sender number and the authorized Meta
+              Phone Number ID and WhatsApp Business Account ID.
+            </p>
+
+            <div class="form-group">
+              <label class="form-label" for="settingPhoneNumber">
+                Configured Sender Number
+              </label>
+
+              <input
+                type="text"
+                id="settingPhoneNumber"
+                class="form-input"
+                value="8787222966"
+                autocomplete="tel"
+              >
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="settingPhoneId">
+                Meta Phone Number ID
+              </label>
+
+              <input
+                type="text"
+                id="settingPhoneId"
+                class="form-input"
+                placeholder="Enter Meta Phone Number ID"
+                autocomplete="off"
+              >
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="settingWabaId">
+                WhatsApp Business Account ID (WABA)
+              </label>
+
+              <input
+                type="text"
+                id="settingWabaId"
+                class="form-input"
+                placeholder="Enter WhatsApp Business Account ID"
+                autocomplete="off"
+              >
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 18px; flex-wrap: wrap;">
+              <button
+                type="button"
+                id="saveSettingsBtn"
+                class="btn btn-primary"
+              >
+                Save &amp; Register Profile
+              </button>
+
+              <button
+                type="button"
+                id="testApiConnectivityBtn"
+                class="btn btn-secondary"
+              >
+                Check Graph API Status
+              </button>
+            </div>
+          </div>
+
+          <!-- Direct Test Dispatcher -->
+          <div class="card">
+            <h3 class="card-title" style="margin-bottom: 8px;">
+              Direct Test Dispatcher
+            </h3>
+
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+              Send a test message directly through the configured backend
+              integration. This action should not create a campaign record.
+              Only send to a recipient who has consented to receive messages.
+            </p>
+
+            <div class="form-group">
+              <label class="form-label" for="testRecipientPhone">
+                Target Recipient Phone (international format, digits only)
+              </label>
+
+              <input
+                type="tel"
+                id="testRecipientPhone"
+                class="form-input"
+                placeholder="e.g., 918787222966"
+                inputmode="numeric"
+                autocomplete="tel"
+              >
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="testMessageBody">
+                Test Payload Text
+              </label>
+
+              <textarea
+                id="testMessageBody"
+                class="form-textarea"
+                style="min-height: 80px;"
+                maxlength="4096"
+                placeholder="Hello from WhatsApp Campaign Manager test suite."
+              ></textarea>
+            </div>
+
+            <button
+              type="button"
+              id="sendTestMessageBtn"
+              class="btn btn-primary"
+              style="margin-top: 4px;"
+            >
+              Send Test WhatsApp
+            </button>
+
+            <!-- API Response Console -->
+            <div style="margin-top: 20px;">
+              <label class="form-label" for="testResponseBox">
+                Meta API Response Console
+              </label>
+
+              <pre
+                id="testResponseBox"
+                role="status"
+                aria-live="polite"
+                style="background: #0f172a; color: #38bdf8; padding: 14px; border-radius: var(--radius-sm); font-family: monospace; font-size: 12px; max-height: 220px; overflow-y: auto; white-space: pre-wrap; overflow-wrap: anywhere;"
+              >Awaiting dispatch...</pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Application Scripts -->
+  <!-- These files must exist at the specified paths. -->
+  <script src="js/api.js" defer></script>
+  <script src="js/validators.js" defer></script>
+  <script src="js/excel-importer.js" defer></script>
+  <script src="js/message-composer.js" defer></script>
+  <script src="js/pdf-uploader.js" defer></script>
+  <script src="js/campaign-review.js" defer></script>
+  <script src="js/campaign-history.js" defer></script>
+  <script src="js/dashboard.js" defer></script>
+  <script src="js/app.js" defer></script>
+  <script src="js/settings.js" defer></script>
+</body>
+</html>
